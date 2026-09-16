@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CalendarDays, Check, ChevronDown, CircleHelp, ClipboardList, Clock3, Menu, Pencil, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
+import {
+  getListTasksQueryKey,
+  useClearCompletedTasks,
+  useCreateTask,
+  useDeleteTask,
+  useListTasks,
+  useUpdateTask,
+  type Task as ApiTask,
+  type TaskUpdate,
+} from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -8,18 +18,11 @@ import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 
 const queryClient = new QueryClient();
-const STORAGE_KEY = 'quietly-todos-v1';
 
-type Priority = 'low' | 'medium' | 'high';
+type Task = ApiTask;
+type Priority = Task['priority'];
 type Filter = 'all' | 'today' | 'upcoming' | 'completed';
-type Task = {
-  id: string;
-  text: string;
-  completed: boolean;
-  priority: Priority;
-  dueDate: string;
-  createdAt: string;
-};
+type TaskChanges = Pick<TaskUpdate, 'text' | 'completed' | 'priority' | 'dueDate'>;
 
 const formatDateInput = (date: Date) => {
   const year = date.getFullYear();
@@ -27,29 +30,6 @@ const formatDateInput = (date: Date) => {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
-
-const offsetDate = (days: number) => {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return formatDateInput(date);
-};
-
-const starterTasks: Task[] = [
-  { id: 'starter-1', text: 'Write down the one thing that would make today feel lighter', completed: false, priority: 'high', dueDate: formatDateInput(new Date()), createdAt: new Date().toISOString() },
-  { id: 'starter-2', text: 'Take a proper break before the afternoon gets away', completed: false, priority: 'low', dueDate: formatDateInput(new Date()), createdAt: new Date().toISOString() },
-  { id: 'starter-3', text: 'Make space for the idea I keep circling back to', completed: false, priority: 'medium', dueDate: offsetDate(2), createdAt: new Date().toISOString() },
-];
-
-function loadTasks(): Task[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return starterTasks;
-    const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed : starterTasks;
-  } catch {
-    return starterTasks;
-  }
-}
 
 const displayDate = (value: string) => {
   if (!value) return '';
@@ -69,16 +49,17 @@ function AppShell({ children }: { children: ReactNode }) {
 }
 
 function Home() {
-  const [tasks, setTasks] = useState<Task[]>(loadTasks);
+  const { data, isError, isLoading } = useListTasks();
+  const tasks = data ?? [];
+  const createTaskMutation = useCreateTask();
+  const updateTaskMutation = useUpdateTask();
+  const deleteTaskMutation = useDeleteTask();
+  const clearCompletedMutation = useClearCompletedTasks();
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [toast, setToast] = useState('');
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-  }, [tasks]);
 
   useEffect(() => {
     if (!toast) return;
@@ -102,14 +83,29 @@ function Home() {
   }, [filter, search, tasks]);
 
   const addTask = (text: string, priority: Priority, dueDate: string) => {
-    const task: Task = { id: crypto.randomUUID(), text: text.trim(), completed: false, priority, dueDate, createdAt: new Date().toISOString() };
-    setTasks((current) => [task, ...current]);
-    setIsComposerOpen(false);
-    setToast('A clear next step, added.');
+    createTaskMutation.mutate(
+      { data: { text: text.trim(), priority, dueDate } },
+      {
+        onSuccess: (task) => {
+          queryClient.setQueryData<Task[]>(getListTasksQueryKey(), (current = []) => [task, ...current]);
+          setIsComposerOpen(false);
+          setToast('A clear next step, added.');
+        },
+        onError: () => setToast('Could not save that task. Try again.'),
+      },
+    );
   };
 
-  const updateTask = (id: string, changes: Partial<Task>) => {
-    setTasks((current) => current.map((task) => task.id === id ? { ...task, ...changes } : task));
+  const updateTask = (id: string, changes: TaskChanges) => {
+    updateTaskMutation.mutate(
+      { id, data: changes },
+      {
+        onSuccess: (task) => {
+          queryClient.setQueryData<Task[]>(getListTasksQueryKey(), (current = []) => current.map((item) => item.id === task.id ? task : item));
+        },
+        onError: () => setToast('Could not update that task. Try again.'),
+      },
+    );
   };
 
   const toggleTask = (task: Task) => {
@@ -118,14 +114,27 @@ function Home() {
   };
 
   const deleteTask = (id: string) => {
-    setTasks((current) => current.filter((task) => task.id !== id));
-    setToast('Removed from your list.');
+    deleteTaskMutation.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          queryClient.setQueryData<Task[]>(getListTasksQueryKey(), (current = []) => current.filter((task) => task.id !== id));
+          setToast('Removed from your list.');
+        },
+        onError: () => setToast('Could not remove that task. Try again.'),
+      },
+    );
   };
 
   const clearCompleted = () => {
     if (!completedCount) return;
-    setTasks((current) => current.filter((task) => !task.completed));
-    setToast(`${completedCount} ${completedCount === 1 ? 'task' : 'tasks'} cleared.`);
+    clearCompletedMutation.mutate(undefined, {
+      onSuccess: () => {
+        queryClient.setQueryData<Task[]>(getListTasksQueryKey(), (current = []) => current.filter((task) => !task.completed));
+        setToast(`${completedCount} ${completedCount === 1 ? 'task' : 'tasks'} cleared.`);
+      },
+      onError: () => setToast('Could not clear completed tasks. Try again.'),
+    });
   };
 
   const navigateFilter = (nextFilter: Filter) => {
@@ -216,11 +225,17 @@ function Home() {
 
               {isComposerOpen && <TaskComposer onAdd={addTask} onCancel={() => setIsComposerOpen(false)} />}
 
-              <div className="mt-4 space-y-2.5">
-                {filteredTasks.map((task, index) => <TaskRow key={task.id} task={task} index={index} onToggle={toggleTask} onUpdate={updateTask} onDelete={deleteTask} />)}
-              </div>
+              {isLoading && <div className="mt-5 flex min-h-[240px] items-center justify-center rounded-[20px] border border-dashed border-border bg-card/50 text-[13px] text-muted-foreground">Loading your list…</div>}
+              {isError && <div className="mt-5 flex min-h-[240px] flex-col items-center justify-center rounded-[20px] border border-dashed border-destructive/30 bg-card/50 px-6 text-center text-[13px] text-muted-foreground"><p>We could not reach your list.</p><button onClick={() => window.location.reload()} className="mt-3 rounded-full bg-secondary px-4 py-2 text-[12px] font-semibold text-secondary-foreground hover:bg-primary hover:text-primary-foreground">Try again</button></div>}
+              {!isLoading && !isError && (
+                <>
+                  <div className="mt-4 space-y-2.5">
+                    {filteredTasks.map((task, index) => <TaskRow key={task.id} task={task} index={index} onToggle={toggleTask} onUpdate={updateTask} onDelete={deleteTask} />)}
+                  </div>
 
-              {!filteredTasks.length && <EmptyState filter={filter} search={search} onAdd={() => { setSearch(''); setIsComposerOpen(true); }} />}
+                  {!filteredTasks.length && <EmptyState filter={filter} search={search} onAdd={() => { setSearch(''); setIsComposerOpen(true); }} />}
+                </>
+              )}
 
               {completedCount > 0 && (
                 <button onClick={clearCompleted} className="mt-7 inline-flex items-center gap-2 text-[12px] font-semibold text-muted-foreground transition-colors hover:text-destructive" data-testid="button-clear-completed"><Trash2 size={14} /> Clear completed ({completedCount})</button>
