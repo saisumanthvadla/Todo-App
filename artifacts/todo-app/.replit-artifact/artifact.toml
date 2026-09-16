@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Todo App"
+description = "A focused personal todo app for capturing tasks, organizing priorities, and staying on top of what matters today with local persistence."
+version = "1.0.0"
+id = "artifacts/todo-app"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25230
+
+[services.development]
+run = "pnpm --filter @workspace/todo-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/todo-app", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/todo-app/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25230"
+BASE_PATH = "/"
