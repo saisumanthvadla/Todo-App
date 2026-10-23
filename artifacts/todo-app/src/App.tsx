@@ -147,7 +147,7 @@ function Home() {
       <div className="flex min-h-[100dvh]">
         <aside className={`fixed inset-y-0 left-0 z-30 flex w-[278px] flex-col bg-sidebar px-6 py-7 text-sidebar-foreground transition-transform duration-300 lg:static lg:translate-x-0 ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`} aria-label="Main navigation">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-accent text-accent-foreground shadow-[0_8px_20px_hsl(13_72%_67%_/_0.22)]"><Sparkles size={19} strokeWidth={2.3} /></div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-accent text-accent-foreground shadow-[0_8px_20px_hsl(21_86%_59%_/_0.25)]"><Sparkles size={19} strokeWidth={2.3} /></div>
             <div>
               <div className="font-serif text-[23px] leading-none tracking-[-0.03em]">quietly</div>
               <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.19em] text-sidebar-foreground/55">a little room to think</div>
@@ -193,14 +193,14 @@ function Home() {
           </header>
 
           <div className="mx-auto max-w-[1120px] px-5 pb-16 sm:px-8 lg:px-12">
-            <section className="relative overflow-hidden rounded-[25px] bg-[#dfe8d8] px-6 py-8 sm:px-10 sm:py-10">
-              <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full border-[22px] border-[#f7b19f]/35" />
+            <section className="relative overflow-hidden rounded-[25px] bg-[#f2e2d3] px-6 py-8 sm:px-10 sm:py-10">
+              <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full border-[22px] border-[#e9955c]/35" />
               <div className="absolute -right-1/2 -bottom-40 h-96 w-96 rounded-full border-[1px] border-primary/10" />
               <div className="relative max-w-[570px]">
                 <p className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-primary"><span className="h-1.5 w-1.5 rounded-full bg-accent" />A moment to reset</p>
-                <h1 className="font-serif text-[39px] leading-[.98] tracking-[-0.04em] text-[#183c34] sm:text-[52px]">Good morning, Maya<span className="text-accent">.</span></h1>
-                <p className="mt-4 max-w-[430px] text-[15px] leading-relaxed text-[#355c51]">Let the list hold the loose ends today. You can just focus on the next one.</p>
-                <button onClick={() => setIsComposerOpen(true)} className="mt-7 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-[13px] font-semibold text-primary-foreground shadow-[0_8px_20px_hsl(163_38%_36%_/_0.18)] transition-transform hover:-translate-y-0.5 active:translate-y-0" data-testid="button-add-task-hero"><Plus size={16} /> Add a task</button>
+                <h1 className="font-serif text-[39px] leading-[.98] tracking-[-0.04em] text-[#422817] sm:text-[52px]">Good morning, Maya<span className="text-accent">.</span></h1>
+                <p className="mt-4 max-w-[430px] text-[15px] leading-relaxed text-[#694a34]">Let the list hold the loose ends today. You can just focus on the next one.</p>
+                <button onClick={() => setIsComposerOpen(true)} className="mt-7 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-[13px] font-semibold text-primary-foreground shadow-[0_8px_20px_hsl(24_82%_43%_/_0.2)] transition-transform hover:-translate-y-0.5 active:translate-y-0" data-testid="button-add-task-hero"><Plus size={16} /> Add a task</button>
               </div>
             </section>
 
@@ -261,7 +261,7 @@ function TaskComposer({ onAdd, onCancel }: { onAdd: (text: string, priority: Pri
     event.preventDefault();
     if (text.trim()) onAdd(text, priority, dueDate);
   };
-  return <form onSubmit={submit} className="mt-5 rounded-[17px] border border-primary/25 bg-card p-4 shadow-[0_8px_28px_hsl(163_38%_36%_/_0.08)] task-enter" data-testid="form-add-task">
+  return <form onSubmit={submit} className="mt-5 rounded-[17px] border border-primary/25 bg-card p-4 shadow-[0_8px_28px_hsl(24_82%_43%_/_0.09)] task-enter" data-testid="form-add-task">
     <div className="flex items-start gap-3"><div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-primary/45"><Plus size={12} className="text-primary" /></div><input autoFocus value={text} onChange={(event) => setText(event.target.value)} placeholder="What is on your mind?" className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/65" aria-label="New task text" data-testid="input-new-task" /></div>
     <div className="mt-4 flex flex-wrap items-center gap-2 pl-8">
       <SelectChip label="Priority" value={priorityLabels[priority]}><select value={priority} onChange={(event) => setPriority(event.target.value as Priority)} aria-label="Task priority" data-testid="select-new-priority"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></SelectChip>
@@ -311,7 +311,7 @@ function EmptyState({ filter, search, onAdd }: { filter: Filter; search: string;
   const title = search ? 'Nothing matched that search' : filter === 'completed' ? 'No finished tasks yet' : filter === 'today' ? 'A quiet day ahead' : filter === 'upcoming' ? 'Nothing waiting in the wings' : 'Your head is clear';
   const description = search ? 'Try another phrase, or add the thought you are looking for.' : filter === 'completed' ? 'Finished tasks will gather here as you move through your list.' : 'Start with the smallest next step. It does not need to be perfect.';
   return <div className="mt-5 flex min-h-[240px] flex-col items-center justify-center rounded-[20px] border border-dashed border-border bg-card/50 px-6 text-center task-enter" data-testid="empty-task-state">
-    <div className="relative mb-5 flex h-14 w-14 items-center justify-center rounded-[19px] bg-[#f7b19f]/30 text-primary"><div className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-accent" /><Sparkles size={23} /></div>
+    <div className="relative mb-5 flex h-14 w-14 items-center justify-center rounded-[19px] bg-[#e9955c]/25 text-primary"><div className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-accent" /><Sparkles size={23} /></div>
     <h3 className="font-serif text-[24px] tracking-[-0.03em]">{title}</h3><p className="mt-2 max-w-[310px] text-[13px] leading-relaxed text-muted-foreground">{description}</p>
     {filter !== 'completed' && <button onClick={onAdd} className="mt-5 inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-2 text-[12px] font-semibold text-secondary-foreground hover:bg-primary hover:text-primary-foreground" data-testid="button-empty-add-task"><Plus size={14} /> Add your next step</button>}
   </div>;
